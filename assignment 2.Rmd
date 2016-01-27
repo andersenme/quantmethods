@@ -1,0 +1,88 @@
+---
+title: "hw 2"
+output: word_document
+---
+
+```{r}
+data(iris)
+head(iris)
+
+sp_ids = unique(iris$Species)
+
+output = matrix(0, nrow=length(sp_ids), ncol=ncol(iris)-1)
+rownames(output) = sp_ids
+colnames(output) = names(iris[ , -ncol(iris)])
+
+for(i in seq_along(sp_ids)) {
+    iris_sp = subset(iris, subset=Species == sp_ids[i], select=-Species)
+    for(j in 1:(ncol(iris_sp))) {
+        x = 0
+        y = 0
+        if (nrow(iris_sp) > 0) {
+            for(k in 1:nrow(iris_sp)) {
+                x = x + iris_sp[k, j]
+                y = y + 1
+            }
+            output[i, j] = x / y 
+        }
+    }
+}
+output
+
+```
+1. 
+Output is mean value of each characteristic for each species.
+
+2. 
+Loop through species names, form subset for each species
+   Loop through each column in subset
+   If row number is greater than zero
+       loop through column and calculate mean of column
+
+3. X could be renamed sumcharacteristic, y could be renamed ntotal, and output could be renamed averagecharacteristic or meancharacteristic.
+
+4.
+Using a mean function instead of the third nested for loop would be more efficient.
+
+5. 
+```{r}
+y = 0
+x = 1:10
+
+for(i in x){
+    y[i] = sum(x[1:i])
+    print(y)
+}
+```
+
+6.
+```{r}
+y = 0
+x = 1:10
+
+for(i in x){
+    y[i] = sum(x[1:i])
+    if(y[i]<=10){
+      print(y)
+    }
+    else{
+      print(NA)
+    }
+}
+```
+
+7.
+```{r}
+
+sum_1 = function(x, cutoff=10) {
+    output = NULL
+    for(i in seq_along(x)) {
+    output[i] = sum(x[1:i])
+        if(output[i] > cutoff) {
+            output[i] = NA
+        }
+    }
+    return(output)
+}
+sum_1(x)
+```

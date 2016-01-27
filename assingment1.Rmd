@@ -1,0 +1,33 @@
+---
+title: "assignment1"
+output: word_document
+---
+
+
+hw1
+```{r}
+dat = read.csv('http://dmcglinn.github.io/quant_methods/data/tgpp.csv')
+head(dat)
+names(dat)
+```
+
+2
+```{r}
+dim(dat)
+```
+3
+```{r}
+sapply(dat, class)
+```
+4
+```{r}
+dat[c(1,5,8), c(3,7,10)]
+```
+5
+```{r}
+plot(dat$scale, dat$richness, xlab = 'Scale', ylab = 'Richness', col = 'red')
+```
+6
+```{r}
+plot(dat$scale, dat$richness, xlab = 'Scale', ylab = 'Richness', col = 'red', log = 'xy')
+```
