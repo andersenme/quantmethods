@@ -1,0 +1,88 @@
+---
+title: "hw3"
+author: "Merry Andersen"
+date: "February 3, 2016"
+output: word_document
+---
+METADATA:
+
+The dataset includes tree abundances from a subset of a vegetation database of Great Smoky Mountains National Park (TN, NC).
+
+plotID: unique code for each spatial unit (note some sampled more than once)
+date: when species occurrence recorded
+plotsize: size of quadrat in m2
+spcode: unique 7-letter code for each species
+species: species name
+cover: local abundance measured as estimated horizontal cover (ie, relative area of shadow if sun is directly above) classes 1-10 are: 1=trace, 2=0-1%, 3=1-2%, 4=2-5%, 5=5-10%, 6=10-25%, 7=25-50%, 8=50-75%, 9=75-95%, 10=95-100%
+utme: plot UTM Easting, zone 17 (NAD27 Datum)
+utmn: plot UTM Northing, zone 17 (NAD27 Datum)
+elev: elevation in meters from a digital elevation model (10 m res)
+tci: topographic convergence index, or site "water potential"; measured as the upslope contributing area divided by the tangent of the slope angle (Beven and Kirkby 1979)
+streamdist: distance of plot from the nearest permanent stream (meters)
+disturb: plot disturbance history (from a Park report); CORPLOG=corporate logging; SETTLE=concentrated settlement, VIRGIN="high in virgin attributes", LT-SEL=light or selective logging
+beers: transformed slope aspect ('heat load index'); 0 is SW (hottest), 2 is NE (coolest)
+
+
+
+```{r}
+read.csv('http://dmcglinn.github.io/quant_methods/data/treedata_subset.csv')
+treedata = read.csv('http://dmcglinn.github.io/quant_methods/data/treedata_subset.csv')
+dim(treedata)
+colnames(treedata)
+class(treedata)
+head(treedata)
+lm(treedata$cover ~ treedata$spcode)
+mod1 = lm(treedata$cover ~ treedata$spcode)
+#allow plot to show all plots at once
+par(mfrow = c(2,2))
+#subset acer rubrum by selecting row then selecting columns
+subset(treedata,subset=species=="Acer rubrum", select= c("cover", "tci", "elev", "beers", "disturb", "streamdist"))
+acer = subset(treedata,subset=species=="Acer rubrum", select= c("cover", "tci", "elev", "beers", "disturb", "streamdist"))
+head(acer)
+plot(acer)
+#linear model of cover vs all other variables for Acer rubrum
+lm(cover ~ tci + elev + beers + disturb + streamdist, data = acer)
+modacer = lm(cover ~ tci + elev + beers + disturb + streamdist, data = acer)
+summary(modacer)
+plot(modacer)
+#subset and model for Abies fraseri
+subset(treedata,subset=species=="Abies fraseri", select= c("cover", "tci", "elev", "beers", "disturb", "streamdist"))
+fraseri = subset(treedata,subset=species=="Abies fraseri", select= c("cover", "tci", "elev", "beers", "disturb", "streamdist"))
+modfraseri = lm(cover ~ tci + elev + beers + disturb + streamdist, data = fraseri)
+summary(modfraseri)
+plot(modfraseri)
+#plot all variables against each other for both models
+pairs(acer, lower.panel = panel.smooth, upper.panel = panel.car, pch = 1, col = 'black')
+pairs(fraseri, lower.panel = panel.smooth, upper.panel = panel.car, pch = 1, col = 'black')
+#Anovas vs summaries for both models
+library(car)
+Anova(modacer, type=3)
+summary(modacer)
+Anova(modfraseri, type=3)
+summary(modfraseri)
+
+```
+*The exploratory models don't seem to explain the variance in cover very well. The data appear to be normally distributed in both cases. According to the summary and ANOVA for Acer rubrum, water potential, elevation, slope aspect, and stream distance all show some correlation to cover. However, there's no visually obvious correlation on the graphs of the data and linear model, and the r-squared statistics are very low, indicating a poor overall fit to the regression line. The data for Abies fraseri show a very significant positive correlation between elevation and cover, but no other correlations. The r-squared values in both the summary and ANOVA are high, which suggests that the model for Abies fraseri describes the data somewhat bettter than the model for Acer rubrum.
+*The strongest and only significant predictor for Abies fraseri was elevation. A model of only cover with respect to elevation might be more predictive than the multiple regression model used here, but it might not be biologically relevant depending on the goals of the study. For Acer rubrum, tci, elevation, slope aspect and stream distance showed significant correlation, but none were very predictive.
+*The models show that there is most likely an issue with the underlying assumptions for OLS regression. The assumption being violated is most likely that the model is appropriate for the data, specifically that all the predictive variables are included and the data are linear.
+*The variance in the data for Acer rubrum is more easily explained than for Abies fraseri, since there are more predictive variables for Acer rubrum.
+
+```{r}
+#general linear model with Poisson distribution
+acer_glm = glm(cover ~ . , data= acer, family='poisson')
+summary(acer_glm)
+fraseri_glm = glm(cover ~ . , data= fraseri, family='poisson')
+summary(fraseri_glm)
+#pseudo r-squared
+pseudo_r2 = function(glm_mod) {
+    1 -  glm_mod$deviance / glm_mod$null.deviance
+}
+pseudo_r2(acer_glm)
+pseudo_r2(fraseri_glm)
+#anova of sums of squares for ols vs glm
+anova(modacer, acer_glm)
+anova(modfraseri, fraseri_glm)
+```
+The GLM significantly reduces the residual sum of squares for both Acer rubrum and Abies fraseri. However, changing the model did not significantly change the r-squared values for either of them, suggesting the GLM doesn't explain variance any better than the OLs model.
+
+1. The most important contributing factor in the amount of cover an A. fraseri individual will have is elevation, but most likely nothing else. For A. rubrum, the slope aspect, site water potential, elevation, and distance from streams all contribute to the amount of cover, but none of them are very predictive for it.
