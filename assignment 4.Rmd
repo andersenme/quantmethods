@@ -1,0 +1,41 @@
+---
+title: "assignment 4 mult models"
+author: "Merry Andersen"
+date: "February 10, 2016"
+output: word_document
+---
+
+```{r}
+library(vegan)
+data(dune)
+data(dune.env)
+?dune
+head(dune)
+dim(dune)
+```
+1. NMDS of dune
+```{r}
+dune_mds = metaMDS(dune)
+dune_mds
+plot(dune_mds, type='n')
+text(dune_mds, 'sp', cex=.5)
+# generate vector of colors 
+color_vect = rev(terrain.colors(6))[-1]
+points(dune_mds, 'sites', pch=19, 
+       col=color_vect[dune.env$Moisture])
+legend('topright', paste("Moisture =", 1:5, sep=''), 
+       col=color_vect, pch=19)
+
+```
+1. The NMDS plot shows that some of the species are associated with higher moisture and some are associated with lower moisture, but does not show any strong trends. A CCA might show how much moisture contributes to each axis.
+
+```{r}
+#CCA of dune ~ dune.env
+dune_cca = cca(dune ~ ., data=dune.env)
+plot(dune_cca)
+anova(dune_cca)
+
+```
+2. An anova of the CCA for the whole model showed that the model as a whole significantly explained the variance in the data. However, none of the variables, moisture included, showed significant contribution by themselves. A1 soil depth and moisture were the top contributing variables, but did not have a significant P-value.
+
+3. The models seem to support each other. The NDMS model showed a slight trend that some species might be associated with moisture, but nothing obvious. The CCA model showed that the variables taken as a whole contributed significantly to the explanation of variance, but none of them individually contributed significantly. This suggests that the variance in species location may be an interactive effect between all the variables, or possibly that an unmeasured variable is causing the distribution.

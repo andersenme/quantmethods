@@ -1,0 +1,99 @@
+---
+title: "spatial modeling assignment"
+author: "Merry Andersen"
+date: "February 17, 2016"
+output: word_document
+---
+```{r}
+library(vegan)
+library(nlme)
+data(BCI)
+?BCI
+dim(BCI)
+## UTM Coordinates (in metres)
+BCI_xy = data.frame(x = rep(seq(625754, 626654, by=100), each=5), 
+                    y = rep(seq(1011569,  1011969, by=100), len=50))
+sp_ids = c("Cordia.lasiocalyx", "Hirtella.triandra",
+           "Picramnia.latifolia", "Quassia.amara",
+           "Tabernaemontana.arborea", "Trattinnickia.aspera", 
+           "Xylopia.macrantha", "Drypetes.standleyi")
+
+spsubset = subset(BCI, select=sp_ids)
+head(spsubset)
+BCI_sub = data.frame(BCI_xy, spsubset)
+head(BCI_sub)
+
+```
+
+Model 1: general least squares with Trattinickia aspera as the predictive variable and Drypetes standleyi as the response variable
+```{r}
+
+#gls ~ Trattinnickia.aspera
+modtratt = gls(Drypetes.standleyi ~ Trattinnickia.aspera, data=BCI_sub)
+summary(modtratt)
+plot(Variogram(modtratt, form= ~ x + y))
+
+
+#modtratt with exponential error
+modtratt1 = gls(Drypetes.standleyi ~ Trattinnickia.aspera, data= BCI_sub, corr= corExp(form= ~ x + y))
+summary(modtratt1)
+plot(Variogram(modtratt1, form= ~ x + y))
+
+
+#modtratt with exponential error and nugget
+modtratt1nug = gls(Drypetes.standleyi ~ Trattinnickia.aspera, data= BCI_sub, corr= corExp(form= ~ x + y, nugget = T))
+summary(modtratt1nug)
+plot(Variogram(modtratt1nug, form= ~ x + y))
+
+
+#anova of models
+anova(modtratt, modtratt1, modtratt1nug, test = F)
+
+```
+Both models show strong correlation between D. standleyi and T. aspera. Including the exponential error decreased the regression coefficient and the p-value for T. aspera. In the ANOVA the AIC and BIC were reduced by including the error, indicating a better fit for the model, but the graph shows an exponential trend along the data points. This means a different regression model is probably needed. Adding a nugget did not improve the model fit.
+
+Model 2: D. standleyi as response variable, all other species as predictive variables
+```{r}
+
+#gls ~ all species
+modall = gls(Drypetes.standleyi ~ Cordia.lasiocalyx + Hirtella.triandra + Picramnia.latifolia + Quassia.amara + Tabernaemontana.arborea + Trattinnickia.aspera + Xylopia.macrantha, data=BCI_sub)
+summary(modall)
+plot(Variogram(modall, form= ~ x + y))
+
+
+#modall with exponential error
+modall1 = gls(Drypetes.standleyi ~ Cordia.lasiocalyx + Hirtella.triandra + Picramnia.latifolia + Quassia.amara + Tabernaemontana.arborea + Trattinnickia.aspera + Xylopia.macrantha, data= BCI_sub, corr= corExp(form= ~ x + y))
+summary(modall1)
+plot(Variogram(modall1, form= ~ x + y))
+
+#try exponential error with nugget
+modall1nug = gls(Drypetes.standleyi ~ Cordia.lasiocalyx + Hirtella.triandra + Picramnia.latifolia + Quassia.amara + Tabernaemontana.arborea + Trattinnickia.aspera + Xylopia.macrantha, data= BCI_sub, corr= corExp(form= ~ x + y, nugget = T))
+summary(modall1nug)
+plot(Variogram(modall1nug, form= ~ x + y))
+
+
+#There seems to be systematic error with the exponential correlation so try Gaussian instead
+modallG = gls(Drypetes.standleyi ~ Cordia.lasiocalyx + Hirtella.triandra + Picramnia.latifolia + Quassia.amara + Tabernaemontana.arborea + Trattinnickia.aspera + Xylopia.macrantha, data= BCI_sub, corr= corGaus(form= ~ x + y))
+plot(Variogram(modallG, form= ~ x + y))
+
+#Try Gaussian with nugget
+modallGnug = gls(Drypetes.standleyi ~ Cordia.lasiocalyx + Hirtella.triandra + Picramnia.latifolia + Quassia.amara + Tabernaemontana.arborea + Trattinnickia.aspera + Xylopia.macrantha, data= BCI_sub, corr= corGaus(form= ~ x + y, nugget = T))
+plot(Variogram(modallGnug, form= ~ x + y))
+
+
+#Try rational quadratic
+modallR = gls(Drypetes.standleyi ~ Cordia.lasiocalyx + Hirtella.triandra + Picramnia.latifolia + Quassia.amara + Tabernaemontana.arborea + Trattinnickia.aspera + Xylopia.macrantha, data= BCI_sub, corr= corRatio(form= ~ x + y))
+plot(Variogram(modallR, form= ~ x + y))
+
+#Try rational quadratic with nugget
+modallRnug = gls(Drypetes.standleyi ~ Cordia.lasiocalyx + Hirtella.triandra + Picramnia.latifolia + Quassia.amara + Tabernaemontana.arborea + Trattinnickia.aspera + Xylopia.macrantha, data= BCI_sub, corr= corRatio(form=~x + y, nugget = T))
+plot(Variogram(modallRnug, form=~x + y))
+
+
+#Anova of all models
+anova(modall, modall1, modall1nug, modallG, modallGnug, modallR, modallRnug, test = F)
+
+```
+Including exponential error in the model changed the coefficients of each variable, decreasing some while increasing others. The exponential error model had the best fit according to the ANOVA. Including a nugget or trying other types of error did not improve the fit. As with the first model, there seems to be systematic error in the variogram including exponential error. However, other types of error did not provide a better fit.
+
+While adding error improved both models, the improvement was much more noticeable in the model with only one explanatory variable. This is most likely because there is no apparent correlation between D. standleyi and the other species as a whole, but there is between D. standleyi and T. aspera alone.
